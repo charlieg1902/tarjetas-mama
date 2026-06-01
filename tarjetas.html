@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Escáner de Tarjetas</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --cream: #faf8f3;
+  --warm-white: #f5f1e8;
+  --sand: #e8e0cc;
+  --ink: #1a1612;
+  --ink-mid: #3d3529;
+  --ink-soft: #7a6f60;
+  --ink-faint: #b5a994;
+  --accent: #c17f3b;
+  --accent-light: #e8a455;
+  --accent-dim: rgba(193,127,59,.12);
+  --green: #3b7a57;
+  --green-dim: rgba(59,122,87,.1);
+  --red: #c13b3b;
+  --red-dim: rgba(193,59,59,.1);
+  --shadow: 0 2px 20px rgba(26,22,18,.08);
+  --shadow-lg: 0 8px 40px rgba(26,22,18,.14);
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--ink);
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.logo-mark {
+  width: 36px; height: 36px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px; color: white; line-height: 1;
+}
+header h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.25rem;
+  color: var(--cream);
+  font-weight: 400;
+  flex: 1;
+}
+header h1 em {
+  color: var(--accent-light);
+  font-style: italic;
+}
+.header-badge {
+  font-size: 10px;
+  background: rgba(255,255,255,.08);
+  color: var(--ink-faint);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 100px;
+  padding: 3px 10px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: .5px;
+}
+
+/* ── MAIN ── */
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── STEP INDICATOR ── */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: .25rem;
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.step-dot {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--sand);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  background: var(--cream);
+  flex-shrink: 0;
+  transition: all .3s;
+}
+.step-dot.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+.step-dot.done {
+  border-color: var(--green);
+  background: var(--green);
+  color: white;
+}
+.step-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+  line-height: 1.2;
+  flex: 1;
+}
+.step-label.active { color: var(--accent); font-weight: 600; }
+.step-label.done { color: var(--green); }
+.step-line {
+  width: 28px;
+  height: 2px;
+  background: var(--sand);
+  margin: 0 4px;
+  flex-shrink: 0;
+  transition: background .3s;
+}
+.step-line.done { background: var(--green); }
+
+/* ── CARD ── */
+.card {
+  background: white;
+  border: 1px solid var(--sand);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.card-inner { padding: 1.5rem; }
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 2px dashed var(--sand);
+  border-radius: 10px;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all .25s;
+  position: relative;
+  background: var(--warm-white);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.upload-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon {
+  font-size: 2.5rem;
+  margin-bottom: .75rem;
+  display: block;
+  opacity: .6;
+}
+.upload-zone h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.1rem;
+  color: var(--ink-mid);
+  margin-bottom: .35rem;
+}
+.upload-zone p {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* PREVIEW */
+#preview-wrap {
+  display: none;
+  margin-top: 1rem;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--sand);
+  position: relative;
+}
+#preview-img {
+  width: 100%;
+  display: block;
+  max-height: 220px;
+  object-fit: cover;
+}
+.preview-remove {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: var(--ink);
+  color: white;
+  border: none;
+  border-radius: 100px;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  opacity: .8;
+  font-family: 'DM Sans', sans-serif;
+}
+.preview-remove:hover { opacity: 1; }
+
+/* ── SCAN BTN ── */
+.scan-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: .3px;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1rem;
+}
+.scan-btn:hover:not(:disabled) { background: var(--ink-mid); transform: translateY(-1px); box-shadow: var(--shadow); }
+.scan-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.scan-btn.loading { background: var(--ink-mid); }
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── EXTRACTED FIELDS ── */
+.fields-grid {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-family: 'DM Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-icon { font-size: 13px; }
+.field-input {
+  padding: 10px 14px;
+  border: 1.5px solid var(--sand);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  background: var(--warm-white);
+  outline: none;
+  transition: border .2s;
+  width: 100%;
+}
+.field-input:focus { border-color: var(--accent); background: white; }
+.field-input.filled { border-color: var(--sand); background: white; }
+.field-input::placeholder { color: var(--ink-faint); }
+
+/* SECTION HEADER */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sand);
+}
+
+/* ── OUTLOOK BTN ── */
+.outlook-btn {
+  width: 100%;
+  padding: 14px;
+  background: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 1rem;
+}
+.outlook-btn:hover:not(:disabled) { background: #006bb8; transform: translateY(-1px); box-shadow: var(--shadow); }
+.outlook-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.ms-logo { font-size: 18px; }
+
+/* ── SUCCESS / ERROR BANNER ── */
+.banner {
+  display: none;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  align-items: flex-start;
+  gap: 10px;
+}
+.banner.show { display: flex; }
+.banner-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.banner-text { flex: 1; }
+.banner-text strong { display: block; margin-bottom: 2px; }
+.banner-success { background: var(--green-dim); border: 1px solid rgba(59,122,87,.2); color: var(--green); }
+.banner-error { background: var(--red-dim); border: 1px solid rgba(193,59,59,.2); color: var(--red); }
+.banner-info { background: var(--accent-dim); border: 1px solid rgba(193,127,59,.2); color: var(--accent); }
+
+/* ── AUTH STATUS ── */
+.auth-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--warm-white);
+  border: 1px solid var(--sand);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.auth-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  flex-shrink: 0;
+}
+.auth-dot.connected { background: var(--green); }
+.auth-dot.pulse {
+  background: var(--accent);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.auth-name { flex: 1; color: var(--ink-mid); font-weight: 500; }
+.auth-logout {
+  font-size: 11px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  text-decoration: underline;
+}
+.auth-logout:hover { color: var(--red); }
+
+/* ── RESULT CARD ── */
+.result-card {
+  background: var(--green-dim);
+  border: 1px solid rgba(59,122,87,.2);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: none;
+}
+.result-card.show { display: block; }
+.result-card h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.1rem;
+  color: var(--green);
+  margin-bottom: .75rem;
+}
+.result-detail {
+  font-size: 12px;
+  color: var(--ink-mid);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.result-detail span { display: flex; align-items: center; gap: 6px; }
+
+/* ── FOOTER ── */
+footer {
+  text-align: center;
+  padding: .75rem;
+  font-size: 10px;
+  color: var(--ink-faint);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 1px;
+}
+
+/* ── SETUP CONFIG ── */
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.config-note {
+  font-size: 11px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  background: var(--warm-white);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+}
+.config-note a { color: var(--accent); }
+
+/* TOGGLE SHOW/HIDE  */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">T</div>
+  <h1>Tarjetas <em>al instante</em></h1>
+  <span class="header-badge">v1.0</span>
+</header>
+
+<main>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step-item">
+      <div class="step-dot active" id="sdot-1">1</div>
+      <span class="step-label active" id="slbl-1">Escanear</span>
+    </div>
+    <div class="step-line" id="sline-1"></div>
+    <div class="step-item">
+      <div class="step-dot" id="sdot-2">2</div>
+      <span class="step-label" id="slbl-2">Revisar</span>
+    </div>
+    <div class="step-line" id="sline-2"></div>
+    <div class="step-item">
+      <div class="step-dot" id="sdot-3">3</div>
+      <span class="step-label" id="slbl-3">Guardar</span>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 1: UPLOAD ═══ -->
+  <div id="step-upload">
+    <div class="card">
+      <div class="card-inner">
+        <div class="section-label">Paso 1 — Fotografía</div>
+
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept="image/*" capture="environment" onchange="handleFile(this.files[0])"/>
+          <span class="upload-icon">📸</span>
+          <h3>Toca para fotografiar</h3>
+          <p>Saca una foto a la tarjeta de presentación<br/>o selecciona desde tu galería</p>
+        </div>
+
+        <div id="preview-wrap">
+          <img id="preview-img" src="" alt="Tarjeta"/>
+          <button class="preview-remove" onclick="removeImage()">✕ Quitar</button>
+        </div>
+
+        <!-- API KEY CONFIG (collapsed by default) -->
+        <div id="api-config" style="margin-top:1rem;">
+          <div class="field-row">
+            <label class="field-label"><span class="field-icon">🔑</span> API Key de Claude</label>
+            <input type="password" class="field-input" id="api-key-input" placeholder="sk-ant-..." oninput="saveApiKey(this.value)"/>
+          </div>
+          <div class="config-note" style="margin-top:.5rem;">
+            Necesitás tu propia API key de Anthropic. La obtenés en
+            <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+            Se guarda solo en este dispositivo.
+          </div>
+        </div>
+
+        <button class="scan-btn" id="scan-btn" onclick="scanCard()" disabled>
+          <span class="spinner" id="scan-spinner"></span>
+          <span id="scan-btn-text">✦ Analizar tarjeta</span>
+        </button>
+
+        <div id="scan-error" class="banner banner-error" style="margin-top:.75rem;">
+          <span class="banner-icon">⚠</span>
+          <div class="banner-text"><strong id="scan-err-title">Error</strong><span id="scan-err-msg"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: REVIEW FIELDS ═══ -->
+  <div id="step-review" class="hidden">
+    <div class="card">
+      <div class="card-inner">
+        <div class="section-label">Paso 2 — Revisar datos</div>
+        <div class="fields-grid">
+          <div class="field-row">
+            <label class="field-label"><span class="field-icon">👤</span> Nombre</label>
+            <input type="text" class="field-input" id="f-nombre" placeholder="Nombre"/>
+          </div>
+          <div class="field-row">
+            <label class="field-label"><span class="field-icon">👤</span> Apellido</label>
+            <input type="text" class="field-input" id="f-apellido" placeholder="Apellido"/>
+          </div>
+          <div class="field-row">
+            <label class="field-label"><span class="field-icon">🏢</span> Empresa</label>
+            <input type="text" class="field-input" id="f-empresa" placeholder="Empresa"/>
+          </div>
+          <div class="field-row">
+            <label class="field-label"><span class="field-icon">✉️</span> Correo</label>
+            <input type="email" class="field-input" id="f-email" placeholder="correo@empresa.com"/>
+          </div>
+          <div class="field-row">
+            <label class="field-label"><span class="field-icon">📱</span> Celular</label>
+            <input type="tel" class="field-input" id="f-celular" placeholder="+56 9 xxxx xxxx"/>
+          </div>
+          <div class="field-row">
+            <label class="field-label"><span class="field-icon">💼</span> Cargo (opcional)</label>
+            <input type="text" class="field-input" id="f-cargo" placeholder="Cargo o título"/>
+          </div>
+        </div>
+        <div style="display:flex;gap:.6rem;margin-top:1rem;">
+          <button class="scan-btn" style="background:var(--warm-white);color:var(--ink-mid);border:1.5px solid var(--sand);flex:0 0 auto;width:auto;padding:12px 18px;margin:0;" onclick="goBack()">← Volver</button>
+          <button class="scan-btn" style="margin:0;flex:1;" onclick="goToSave()">Continuar →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: SAVE TO OUTLOOK ═══ -->
+  <div id="step-save" class="hidden">
+    <div class="card">
+      <div class="card-inner">
+        <div class="section-label">Paso 3 — Guardar en Outlook</div>
+
+        <!-- Summary -->
+        <div id="contact-summary" style="background:var(--warm-white);border-radius:8px;padding:1rem;margin-bottom:1rem;border:1px solid var(--sand);">
+          <div style="font-family:'Instrument Serif',serif;font-size:1.1rem;color:var(--ink);margin-bottom:.5rem;" id="sum-name">—</div>
+          <div style="font-size:12px;color:var(--ink-soft);display:flex;flex-direction:column;gap:3px;" id="sum-details"></div>
+        </div>
+
+        <!-- Auth status -->
+        <div id="auth-status" class="auth-row">
+          <div class="auth-dot pulse" id="auth-dot"></div>
+          <span class="auth-name" id="auth-name-lbl">No conectado a Microsoft</span>
+          <button class="auth-logout hidden" id="auth-logout-btn" onclick="signOut()">Cerrar sesión</button>
+        </div>
+
+        <!-- Option A: Outlook direct -->
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-faint);font-family:'DM Mono',monospace;margin-bottom:.5rem;">Opción A — Directo a Outlook</div>
+        <button class="outlook-btn" id="outlook-btn" onclick="handleOutlookAction()">
+          <span class="ms-logo">📧</span>
+          <span id="outlook-btn-text">Conectar con Microsoft</span>
+        </button>
+
+        <!-- Divider -->
+        <div style="display:flex;align-items:center;gap:10px;margin:.75rem 0;">
+          <div style="flex:1;height:1px;background:var(--sand);"></div>
+          <span style="font-size:11px;color:var(--ink-faint);font-family:'DM Mono',monospace;">o</span>
+          <div style="flex:1;height:1px;background:var(--sand);"></div>
+        </div>
+
+        <!-- Option B: vCard download -->
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-faint);font-family:'DM Mono',monospace;margin-bottom:.5rem;">Opción B — Descargar vCard (.vcf)</div>
+        <button class="outlook-btn" id="vcf-btn" onclick="downloadVCard()" style="background:var(--ink-mid);">
+          <span class="ms-logo">📇</span>
+          <span>Descargar contacto (.vcf)</span>
+        </button>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:.4rem;line-height:1.5;padding:0 2px;">
+          El archivo .vcf se importa con un toque en iOS/Android y Outlook lo sincroniza automáticamente.
+        </div>
+
+        <div id="save-banner" class="banner" style="margin-top:.75rem;"></div>
+
+        <button class="scan-btn" style="background:var(--warm-white);color:var(--ink-mid);border:1.5px solid var(--sand);margin-top:.5rem;" onclick="resetAll()">✦ Escanear otra tarjeta</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>TARJETAS AL INSTANTE · Powered by Claude Vision</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG — Microsoft App Registration
+// Para usar Outlook, registrá una app en:
+// https://portal.azure.com → Azure Active Directory → App registrations
+// Redirect URI: esta misma URL del archivo HTML
+// Permisos: Contacts.ReadWrite (delegated)
+// ═══════════════════════════════════════════════════════
+const MSFT_CLIENT_ID = 'TU_CLIENT_ID_AQUI'; // ← reemplazá esto
+const MSFT_TENANT   = 'common';
+const MSFT_SCOPE    = 'https://graph.microsoft.com/Contacts.ReadWrite User.Read';
+const MSFT_REDIRECT = window.location.href.split('#')[0].split('?')[0];
+
+// ── State ──
+const S = {
+  imageData: null,       // base64
+  imageType: null,       // mime
+  extracted: null,       // objeto con campos
+  msToken: null,         // access token
+  msUser: null,          // display name
+};
+
+// ── Init ──
+window.addEventListener('load', () => {
+  loadApiKey();
+  handleOAuthCallback();
+  updateScanBtn();
+});
+
+// ─────────────────────────────────────────
+// API KEY
+// ─────────────────────────────────────────
+function saveApiKey(val) {
+  localStorage.setItem('claude_api_key', val.trim());
+  updateScanBtn();
+}
+function loadApiKey() {
+  const k = localStorage.getItem('claude_api_key') || '';
+  document.getElementById('api-key-input').value = k;
+}
+function getApiKey() { return (localStorage.getItem('claude_api_key') || '').trim(); }
+
+// ─────────────────────────────────────────
+// FILE HANDLING
+// ─────────────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    S.imageType = file.type || 'image/jpeg';
+    S.imageData = dataUrl.split(',')[1];
+    document.getElementById('preview-img').src = dataUrl;
+    document.getElementById('preview-wrap').style.display = 'block';
+    updateScanBtn();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  S.imageData = null;
+  S.imageType = null;
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+  document.getElementById('file-input').value = '';
+  updateScanBtn();
+}
+
+// Drag & drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleFile(file);
+});
+
+function updateScanBtn() {
+  const btn = document.getElementById('scan-btn');
+  btn.disabled = !S.imageData || !getApiKey();
+}
+
+// ─────────────────────────────────────────
+// SCAN WITH CLAUDE VISION
+// ─────────────────────────────────────────
+async function scanCard() {
+  const apiKey = getApiKey();
+  if (!S.imageData || !apiKey) return;
+
+  setScanLoading(true);
+  hideBanner('scan-error');
+
+  const prompt = `Analizá esta tarjeta de presentación y extraé la siguiente información en formato JSON.
+Devolvé SOLO el JSON, sin texto adicional, sin backticks, sin explicaciones.
+Formato exacto:
+{
+  "nombre": "...",
+  "apellido": "...",
+  "empresa": "...",
+  "email": "...",
+  "celular": "...",
+  "cargo": "..."
+}
+Si algún campo no está presente en la tarjeta, dejalo como string vacío "".
+El celular debe incluir código de país si está visible.
+Si hay más de un correo o celular, tomá el principal.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: S.imageType, data: S.imageData } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const raw = data.content.map(b => b.text || '').join('').trim();
+    const clean = raw.replace(/```json|```/g, '').trim();
+    S.extracted = JSON.parse(clean);
+    populateFields(S.extracted);
+    goToReview();
+  } catch (e) {
+    showBannerEl('scan-error', 'scan-err-title', 'scan-err-msg',
+      'No se pudo analizar', e.message);
+  } finally {
+    setScanLoading(false);
+  }
+}
+
+function setScanLoading(on) {
+  const btn = document.getElementById('scan-btn');
+  const txt = document.getElementById('scan-btn-text');
+  const sp  = document.getElementById('scan-spinner');
+  btn.disabled = on;
+  sp.style.display = on ? 'block' : 'none';
+  txt.textContent = on ? 'Analizando...' : '✦ Analizar tarjeta';
+}
+
+function populateFields(data) {
+  document.getElementById('f-nombre').value  = data.nombre  || '';
+  document.getElementById('f-apellido').value = data.apellido || '';
+  document.getElementById('f-empresa').value  = data.empresa  || '';
+  document.getElementById('f-email').value    = data.email    || '';
+  document.getElementById('f-celular').value  = data.celular  || '';
+  document.getElementById('f-cargo').value    = data.cargo    || '';
+  ['f-nombre','f-apellido','f-empresa','f-email','f-celular','f-cargo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.value) el.classList.add('filled');
+  });
+}
+
+// ─────────────────────────────────────────
+// STEP NAVIGATION
+// ─────────────────────────────────────────
+function goToReview() {
+  setStep(2);
+  document.getElementById('step-upload').classList.add('hidden');
+  document.getElementById('step-review').classList.remove('hidden');
+}
+
+function goBack() {
+  setStep(1);
+  document.getElementById('step-review').classList.add('hidden');
+  document.getElementById('step-upload').classList.remove('hidden');
+}
+
+function goToSave() {
+  const nombre   = document.getElementById('f-nombre').value.trim();
+  const apellido = document.getElementById('f-apellido').value.trim();
+  if (!nombre && !apellido) {
+    alert('Completá al menos el nombre o apellido del contacto.');
+    return;
+  }
+  buildSummary();
+  setStep(3);
+  document.getElementById('step-review').classList.add('hidden');
+  document.getElementById('step-save').classList.remove('hidden');
+  updateAuthUI();
+}
+
+function buildSummary() {
+  const n = document.getElementById('f-nombre').value.trim();
+  const a = document.getElementById('f-apellido').value.trim();
+  const e = document.getElementById('f-empresa').value.trim();
+  const em = document.getElementById('f-email').value.trim();
+  const c  = document.getElementById('f-celular').value.trim();
+  const car = document.getElementById('f-cargo').value.trim();
+
+  document.getElementById('sum-name').textContent = [n, a].filter(Boolean).join(' ') || '—';
+  const details = [];
+  if (car) details.push(`💼 ${car}`);
+  if (e)   details.push(`🏢 ${e}`);
+  if (em)  details.push(`✉️ ${em}`);
+  if (c)   details.push(`📱 ${c}`);
+  document.getElementById('sum-details').innerHTML = details.map(d => `<span>${d}</span>`).join('');
+}
+
+function setStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById(`sdot-${i}`);
+    const lbl = document.getElementById(`slbl-${i}`);
+    dot.classList.remove('active','done');
+    lbl.classList.remove('active','done');
+    if (i < n) { dot.classList.add('done'); dot.textContent = '✓'; lbl.classList.add('done'); }
+    else if (i === n) { dot.classList.add('active'); dot.textContent = i; lbl.classList.add('active'); }
+    else { dot.textContent = i; }
+  }
+  for (let i = 1; i <= 2; i++) {
+    const line = document.getElementById(`sline-${i}`);
+    line.classList.toggle('done', i < n);
+  }
+}
+
+function resetAll() {
+  removeImage();
+  S.extracted = null;
+  ['f-nombre','f-apellido','f-empresa','f-email','f-celular','f-cargo'].forEach(id => {
+    document.getElementById(id).value = '';
+    document.getElementById(id).classList.remove('filled');
+  });
+  setStep(1);
+  document.getElementById('step-review').classList.add('hidden');
+  document.getElementById('step-save').classList.add('hidden');
+  document.getElementById('step-upload').classList.remove('hidden');
+  hideBanner('save-banner');
+}
+
+// ─────────────────────────────────────────
+// MICROSOFT OAUTH 2.0 (PKCE)
+// ─────────────────────────────────────────
+function handleOAuthCallback() {
+  const hash = window.location.hash;
+  if (!hash) return;
+  const params = new URLSearchParams(hash.slice(1));
+  const token = params.get('access_token');
+  if (token) {
+    S.msToken = token;
+    localStorage.setItem('ms_token', token);
+    // Clean URL
+    history.replaceState(null, '', window.location.pathname);
+    fetchMsUser();
+  }
+}
+
+function loadToken() {
+  if (S.msToken) return;
+  const stored = localStorage.getItem('ms_token');
+  if (stored) S.msToken = stored;
+}
+
+async function fetchMsUser() {
+  if (!S.msToken) return;
+  try {
+    const resp = await fetch('https://graph.microsoft.com/v1.0/me', {
+      headers: { Authorization: `Bearer ${S.msToken}` }
+    });
+    if (!resp.ok) { signOut(); return; }
+    const data = await resp.json();
+    S.msUser = data.displayName || data.mail || 'Usuario Microsoft';
+    localStorage.setItem('ms_user', S.msUser);
+    updateAuthUI();
+  } catch { signOut(); }
+}
+
+function signIn() {
+  const authUrl = `https://login.microsoftonline.com/${MSFT_TENANT}/oauth2/v2.0/authorize`
+    + `?client_id=${MSFT_CLIENT_ID}`
+    + `&response_type=token`
+    + `&redirect_uri=${encodeURIComponent(MSFT_REDIRECT)}`
+    + `&scope=${encodeURIComponent(MSFT_SCOPE)}`
+    + `&response_mode=fragment`
+    + `&prompt=select_account`;
+  window.location.href = authUrl;
+}
+
+function signOut() {
+  S.msToken = null;
+  S.msUser = null;
+  localStorage.removeItem('ms_token');
+  localStorage.removeItem('ms_user');
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  loadToken();
+  if (!S.msToken) S.msUser = localStorage.getItem('ms_user');
+
+  const dot  = document.getElementById('auth-dot');
+  const lbl  = document.getElementById('auth-name-lbl');
+  const logBtn = document.getElementById('auth-logout-btn');
+  const outlookBtn = document.getElementById('outlook-btn');
+  const outlookTxt = document.getElementById('outlook-btn-text');
+
+  const configured = MSFT_CLIENT_ID !== 'TU_CLIENT_ID_AQUI';
+
+  if (!configured) {
+    dot.className = 'auth-dot';
+    lbl.textContent = 'Configuración pendiente (ver instrucciones abajo)';
+    outlookBtn.disabled = true;
+    outlookTxt.textContent = 'Requiere configuración';
+    logBtn.classList.add('hidden');
+    showSaveBanner('info', '⚙️ Para activar Outlook, necesitás registrar una app en Azure. Ver instrucciones al pie.');
+    return;
+  }
+
+  if (S.msToken) {
+    dot.className = 'auth-dot connected';
+    lbl.textContent = S.msUser || 'Conectado';
+    logBtn.classList.remove('hidden');
+    outlookBtn.disabled = false;
+    outlookBtn.style.background = '#107c41'; // green = ready
+    outlookTxt.textContent = '💾 Guardar contacto en Outlook';
+    hideBanner('save-banner');
+  } else {
+    dot.className = 'auth-dot pulse';
+    lbl.textContent = 'No conectado a Microsoft';
+    logBtn.classList.add('hidden');
+    outlookBtn.disabled = false;
+    outlookBtn.style.background = '#0078d4';
+    outlookTxt.textContent = '🔐 Conectar con Microsoft';
+    hideBanner('save-banner');
+  }
+}
+
+async function handleOutlookAction() {
+  loadToken();
+  if (!S.msToken) { signIn(); return; }
+  await saveContactToOutlook();
+}
+
+// ─────────────────────────────────────────
+// SAVE CONTACT TO OUTLOOK
+// ─────────────────────────────────────────
+async function saveContactToOutlook() {
+  const nombre   = document.getElementById('f-nombre').value.trim();
+  const apellido = document.getElementById('f-apellido').value.trim();
+  const empresa  = document.getElementById('f-empresa').value.trim();
+  const email    = document.getElementById('f-email').value.trim();
+  const celular  = document.getElementById('f-celular').value.trim();
+  const cargo    = document.getElementById('f-cargo').value.trim();
+
+  const body = {
+    givenName: nombre,
+    surname: apellido,
+    companyName: empresa,
+    jobTitle: cargo,
+  };
+
+  if (email) body.emailAddresses = [{ address: email, name: [nombre, apellido].filter(Boolean).join(' ') }];
+  if (celular) body.mobilePhone = celular;
+
+  const btn = document.getElementById('outlook-btn');
+  const txt = document.getElementById('outlook-btn-text');
+  btn.disabled = true;
+  txt.textContent = 'Guardando...';
+
+  try {
+    const resp = await fetch('https://graph.microsoft.com/v1.0/me/contacts', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${S.msToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (resp.status === 401) { signOut(); updateAuthUI(); return; }
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Error ${resp.status}`);
+    }
+
+    showSaveBanner('success',
+      `✅ ¡Contacto guardado! ${[nombre, apellido].filter(Boolean).join(' ')} ya está en tu Outlook.`);
+    txt.textContent = '✅ Guardado';
+    btn.style.background = '#107c41';
+
+  } catch (e) {
+    showSaveBanner('error', `❌ Error al guardar: ${e.message}`);
+    btn.disabled = false;
+    txt.textContent = '💾 Reintentar';
+    btn.style.background = '#0078d4';
+  }
+}
+
+// ─────────────────────────────────────────
+// VCARD DOWNLOAD
+// ─────────────────────────────────────────
+function downloadVCard() {
+  const nombre   = document.getElementById('f-nombre').value.trim();
+  const apellido = document.getElementById('f-apellido').value.trim();
+  const empresa  = document.getElementById('f-empresa').value.trim();
+  const email    = document.getElementById('f-email').value.trim();
+  const celular  = document.getElementById('f-celular').value.trim();
+  const cargo    = document.getElementById('f-cargo').value.trim();
+
+  const fullName = [nombre, apellido].filter(Boolean).join(' ');
+
+  let vcf = `BEGIN:VCARD\r\nVERSION:3.0\r\n`;
+  vcf += `FN:${fullName}\r\n`;
+  vcf += `N:${apellido};${nombre};;;\r\n`;
+  if (empresa) vcf += `ORG:${empresa}\r\n`;
+  if (cargo)   vcf += `TITLE:${cargo}\r\n`;
+  if (email)   vcf += `EMAIL;TYPE=INTERNET:${email}\r\n`;
+  if (celular) vcf += `TEL;TYPE=CELL:${celular}\r\n`;
+  vcf += `END:VCARD\r\n`;
+
+  const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${fullName || 'contacto'}.vcf`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showSaveBanner('success', `📇 Archivo descargado. Abrilo para importar ${fullName} a tus contactos.`);
+}
+
+// ─────────────────────────────────────────
+// BANNERS
+// ─────────────────────────────────────────
+function showBannerEl(bannerId, titleId, msgId, title, msg) {
+  const el = document.getElementById(bannerId);
+  document.getElementById(titleId).textContent = title;
+  document.getElementById(msgId).textContent = msg;
+  el.classList.add('show');
+}
+function hideBanner(id) { document.getElementById(id).classList.remove('show'); }
+
+function showSaveBanner(type, msg) {
+  const el = document.getElementById('save-banner');
+  el.className = `banner banner-${type === 'success' ? 'success' : type === 'info' ? 'info' : 'error'} show`;
+  el.innerHTML = `<span class="banner-icon">${type === 'success' ? '✅' : type === 'info' ? 'ℹ️' : '⚠'}</span>
+    <div class="banner-text">${msg}</div>`;
+}
+</script>
+
+<!-- INSTRUCCIONES SETUP OUTLOOK -->
+<div style="max-width:480px;margin:0 auto 2rem;padding:0 1rem;">
+  <details style="background:white;border:1px solid var(--sand);border-radius:12px;overflow:hidden;">
+    <summary style="padding:14px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-mid);list-style:none;display:flex;align-items:center;gap:8px;">
+      ⚙️ Cómo activar la integración con Outlook
+    </summary>
+    <div style="padding:0 16px 16px;font-size:12px;color:var(--ink-soft);line-height:1.8;border-top:1px solid var(--sand);">
+      <br/>
+      <strong style="color:var(--ink);">Pasos para configurar (una sola vez):</strong><br/><br/>
+      1. Andá a <a href="https://portal.azure.com" target="_blank" style="color:var(--accent);">portal.azure.com</a> con tu cuenta de Microsoft<br/>
+      2. Buscá <strong>Azure Active Directory → App registrations → New registration</strong><br/>
+      3. Nombre: "Tarjetas al instante" (o el que quieras)<br/>
+      4. Redirect URI: seleccioná <strong>Single-page application (SPA)</strong> y pegá la URL de este archivo<br/>
+      5. Después de crear, copiá el <strong>Application (client) ID</strong><br/>
+      6. En <strong>API permissions</strong> agregá: <code>Contacts.ReadWrite</code> y <code>User.Read</code> (ambos Delegated)<br/>
+      7. Pegá el Client ID en el código donde dice <code>TU_CLIENT_ID_AQUI</code><br/><br/>
+      <strong style="color:var(--ink);">API Key de Claude:</strong><br/>
+      Obtené tu key en <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a> → API Keys → Create Key.<br/>
+      Se guarda localmente en tu dispositivo, no se comparte.
+    </div>
+  </details>
+</div>
+
+</body>
+</html>
